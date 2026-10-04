@@ -2,10 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, MapPin, Filter } from 'lucide-react';
 import { eventsAPI } from '../services/api';
-import EventCard from '../components/events/EventCard';
-import Input from '../components/ui/Input';
-import Select from '../components/ui/Select';
-import Button from '../components/ui/Button';
+import EventCard from '../Components/Events/EventCard';
+import Button from '../Components/ui/Button';
 import './Landing.css';
 
 export default function Landing() {
