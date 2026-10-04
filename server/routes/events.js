@@ -1,6 +1,7 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Event = require('../models/Event');
+const Booking = require('../models/Booking');
 const AppError = require('../utils/AppError');
 const protect = require('../middleware/auth');
 const authorize = require('../middleware/authorize');
@@ -173,6 +174,11 @@ router.delete('/:id', protect, authorize('organizer'), async (req, res, next) =>
     // Check ownership
     if (event.organizer.toString() !== req.user.id) {
       return next(new AppError('Not authorized to delete this event', 403));
+    }
+
+    const bookingCount = await Booking.countDocuments({ event: event._id });
+    if (bookingCount > 0) {
+      return next(new AppError('Cannot delete an event with booking history. Cancel the event instead.', 400));
     }
 
     await Event.findByIdAndDelete(req.params.id);
