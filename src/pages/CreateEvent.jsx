@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { PlusCircle, Calendar, MapPin, Image as ImageIcon, DollarSign, Users } from 'lucide-react';
 import { eventsAPI } from '../services/api';
-import { useToast } from '../components/ui/Toast';
-import Input from '../components/ui/Input';
-import Select from '../components/ui/Select';
-import Textarea from '../components/ui/Textarea';
-import Button from '../components/ui/Button';
+import { useToast } from '../Components/ui/Toast';
+import Input from '../Components/ui/Input';
+import Select from '../Components/ui/Select';
+import Textarea from '../Components/ui/Textarea';
+import Button from '../Components/ui/Button';
 
 export default function CreateEvent() {
   const navigate = useNavigate();
@@ -73,6 +73,7 @@ export default function CreateEvent() {
     try {
       const dataToSubmit = {
         ...formData,
+        status: 'published',
         ticket_price: Number(formData.ticket_price),
         total_capacity: Number(formData.total_capacity)
       };
