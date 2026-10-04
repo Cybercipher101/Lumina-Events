@@ -13,6 +13,8 @@ router.post('/', protect, [
   body('attendee_email').isEmail().withMessage('Valid attendee email is required'),
   body('number_of_tickets').isInt({ min: 1 }).withMessage('Must book at least 1 ticket')
 ], async (req, res, next) => {
+  let reservedEvent = null;
+
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -20,9 +22,17 @@ router.post('/', protect, [
       return next(new AppError(messages, 400));
     }
 
-    const { event: eventId, attendee_name, attendee_email, attendee_phone, number_of_tickets, special_requirements } = req.body;
+    const {
+      event: eventId,
+      attendee_name,
+      attendee_email,
+      attendee_phone,
+      number_of_tickets,
+      special_requirements
+    } = req.body;
 
-    // Get the event
+    const requestedTickets = Number(number_of_tickets);
+
     const event = await Event.findById(eventId);
     if (!event) {
       return next(new AppError('Event not found', 404));
@@ -32,33 +42,54 @@ router.post('/', protect, [
       return next(new AppError('This event is not available for booking', 400));
     }
 
-    // Check ticket availability
-    const availableTickets = event.total_capacity - event.tickets_sold;
-    if (number_of_tickets > availableTickets) {
+    // Reserve tickets atomically so concurrent bookings cannot oversell the event.
+    reservedEvent = await Event.findOneAndUpdate(
+      {
+        _id: eventId,
+        status: 'published',
+        $expr: {
+          $lte: [
+            { $add: ['$tickets_sold', requestedTickets] },
+            '$total_capacity'
+          ]
+        }
+      },
+      { $inc: { tickets_sold: requestedTickets } },
+      { new: true }
+    );
+
+    if (!reservedEvent) {
+      const latestEvent = await Event.findById(eventId);
+      const availableTickets = latestEvent
+        ? Math.max(0, latestEvent.total_capacity - latestEvent.tickets_sold)
+        : 0;
       return next(new AppError(`Only ${availableTickets} tickets available`, 400));
     }
 
-    // Calculate total amount
-    const total_amount = event.ticket_price * number_of_tickets;
+    const total_amount = reservedEvent.ticket_price * requestedTickets;
 
-    // Create booking
-    const booking = await Booking.create({
-      event: eventId,
-      user: req.user.id,
-      attendee_name,
-      attendee_email,
-      attendee_phone,
-      number_of_tickets,
-      total_amount,
-      special_requirements,
-      booking_status: 'confirmed'
-    });
+    let booking;
+    try {
+      booking = await Booking.create({
+        event: eventId,
+        user: req.user.id,
+        attendee_name,
+        attendee_email,
+        attendee_phone,
+        number_of_tickets: requestedTickets,
+        total_amount,
+        special_requirements,
+        booking_status: 'confirmed'
+      });
+    } catch (error) {
+      // Roll back the reservation if booking creation fails.
+      await Event.findByIdAndUpdate(eventId, {
+        $inc: { tickets_sold: -requestedTickets }
+      });
+      reservedEvent = null;
+      throw error;
+    }
 
-    // Update event tickets_sold
-    event.tickets_sold += number_of_tickets;
-    await event.save();
-
-    // Populate event details for response
     await booking.populate('event', 'title start_date venue_name venue_city ticket_price currency');
 
     res.status(201).json({
@@ -94,31 +125,33 @@ router.get('/my', protect, async (req, res, next) => {
 // @access  Private (owner only)
 router.put('/:id/cancel', protect, async (req, res, next) => {
   try {
-    const booking = await Booking.findById(req.params.id);
+    const booking = await Booking.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        user: req.user.id,
+        booking_status: { $ne: 'cancelled' }
+      },
+      { booking_status: 'cancelled' },
+      { new: true }
+    );
 
     if (!booking) {
-      return next(new AppError('Booking not found', 404));
-    }
+      const existingBooking = await Booking.findById(req.params.id);
 
-    // Check ownership
-    if (booking.user.toString() !== req.user.id) {
-      return next(new AppError('Not authorized to cancel this booking', 403));
-    }
+      if (!existingBooking) {
+        return next(new AppError('Booking not found', 404));
+      }
 
-    if (booking.booking_status === 'cancelled') {
+      if (existingBooking.user.toString() !== req.user.id) {
+        return next(new AppError('Not authorized to cancel this booking', 403));
+      }
+
       return next(new AppError('Booking is already cancelled', 400));
     }
 
-    // Restore tickets to event
-    const event = await Event.findById(booking.event);
-    if (event) {
-      event.tickets_sold = Math.max(0, event.tickets_sold - booking.number_of_tickets);
-      await event.save();
-    }
-
-    // Update booking status
-    booking.booking_status = 'cancelled';
-    await booking.save();
+    await Event.findByIdAndUpdate(booking.event, {
+      $inc: { tickets_sold: -booking.number_of_tickets }
+    });
 
     res.status(200).json({
       success: true,
