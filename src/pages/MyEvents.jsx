@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, PlusCircle } from 'lucide-react';
 import { eventsAPI } from '../services/api';
-import { useToast } from '../components/ui/Toast';
-import EventCard from '../components/events/EventCard';
-import Button from '../components/ui/Button';
+import { useToast } from '../Components/ui/Toast';
+import EventCard from '../Components/Events/EventCard';
+import Button from '../Components/ui/Button';
 
 export default function MyEvents() {
   const [events, setEvents] = useState([]);
