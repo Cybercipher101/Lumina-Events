@@ -4,9 +4,9 @@ import { Link } from 'react-router-dom';
 import { Ticket, Calendar, MapPin, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { bookingsAPI } from '../services/api';
-import { useToast } from '../components/ui/Toast';
-import Badge from '../components/ui/Badge';
-import Button from '../components/ui/Button';
+import { useToast } from '../Components/ui/Toast';
+import Badge from '../Components/ui/Badge';
+import Button from '../Components/ui/Button';
 import { formatPrice } from '../utils/helpers';
 import './MyBookings.css';
 
