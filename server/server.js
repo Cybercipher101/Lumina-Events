@@ -1,42 +1,42 @@
-const express = require('express');
-const cors = require('cors');
-const dotenv = require('dotenv');
-const path = require('path');
+const mongoose = require('mongoose');
+const readConfig = require('./config/env');
 const connectDB = require('./config/db');
-const errorHandler = require('./middleware/errorHandler');
+const createApp = require('./app');
 
-// Load env vars
-dotenv.config({ path: path.join(__dirname, '..', '.env') });
+async function start({ config = readConfig(), uri = process.env.MONGO_URI } = {}) {
+  process.env.NODE_ENV = config.mode;
+  await connectDB(uri);
+  const app = createApp();
+  const server = await new Promise((resolve, reject) => {
+    const listener = app.listen(config.port, config.host, () => resolve(listener));
+    listener.once('error', reject);
+  });
+  console.log(`Backend ready: http://${config.host}:${config.port}/api/health (MongoDB connected)`);
+  const shutdown = () => server.close(() => mongoose.disconnect().then(() => { process.exitCode = 0; }));
+  process.once('SIGINT', shutdown);
+  process.once('SIGTERM', shutdown);
+  return { app, server };
+}
 
-// Connect to database
-connectDB();
+function startupMessage(error) {
+  if (error.code === 'EADDRINUSE') return 'The backend port is already in use. Stop the other server or change API_PORT in .env.';
+  if (error.code === 'EACCES') return 'The backend cannot listen on this port. Choose an API_PORT above 1024.';
+  if (error.code === 18 || /authentication failed|bad auth/i.test(error.message || '')) {
+    return 'MongoDB authentication failed. Check the database username/password in MONGO_URI (not your application login).';
+  }
+  if (['MongooseServerSelectionError', 'MongoServerSelectionError', 'MongoNetworkError'].includes(error.name)) {
+    return 'Cannot reach MongoDB. Start your local MongoDB service, or check MONGO_URI, the network and Atlas IP access settings. The frontend has not been started.';
+  }
+  if (error.name === 'MongoParseError') return 'The MongoDB connection string is invalid. Check MONGO_URI in .env.';
+  if (/^(Set MONGO_URI|MONGO_URI must|Set JWT_SECRET|JWT_EXPIRE|API_PORT|FRONTEND_PORT)/.test(error.message || '')) return error.message;
+  return 'Backend startup failed. Check your .env settings and database connection.';
+}
 
-const app = express();
-
-// Body parser
-app.use(express.json());
-
-// Enable CORS
-app.use(cors({
-  origin: 'http://localhost:3000',
-  credentials: true
-}));
-
-// Mount routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/events', require('./routes/events'));
-app.use('/api/bookings', require('./routes/bookings'));
-
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-// Global error handler (must be after routes)
-app.use(errorHandler);
-
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log(`🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-});
+if (require.main === module) {
+  start().catch(async error => {
+    console.error(`Backend could not start: ${startupMessage(error)}`);
+    await mongoose.disconnect();
+    process.exitCode = 1;
+  });
+}
+module.exports = { start, startupMessage };

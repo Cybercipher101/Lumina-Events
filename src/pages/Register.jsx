@@ -3,10 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { User, Mail, Lock, UserPlus, Calendar, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useToast } from '../components/ui/Toast';
-import Input from '../components/ui/Input';
-import Select from '../components/ui/Select';
-import Button from '../components/ui/Button';
+import { useToast } from '../Components/ui/Toast';
+import Input from '../Components/ui/Input';
+import Select from '../Components/ui/Select';
+import Button from '../Components/ui/Button';
 import './Auth.css';
 
 export default function Register() {

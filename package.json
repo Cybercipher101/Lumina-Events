@@ -24,15 +24,17 @@
     "react-scripts": "^5.0.1",
     "web-vitals": "^2.1.4"
   },
-  "proxy": "http://localhost:5000",
   "scripts": {
-    "start": "set PORT=3000 && react-scripts start",
+    "start": "node scripts/client.js",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "server": "nodemon server/server.js",
-    "dev": "concurrently \"npm run server\" \"npm start\"",
-    "seed": "node server/seed/seeder.js"
+    "server": "node server/server.js",
+    "dev": "node scripts/dev.js",
+    "seed": "node server/seed/seeder.js",
+    "setup": "node scripts/setup.js",
+    "test:server": "node --test --test-concurrency=1 server/tests/dev.test.js server/tests/auth.test.js",
+    "test:client": "react-scripts test --watchAll=false"
   },
   "eslintConfig": {
     "extends": [
@@ -53,7 +55,10 @@
     ]
   },
   "devDependencies": {
-    "concurrently": "^9.2.1",
-    "nodemon": "^3.1.14"
+    "http-proxy-middleware": "^3.0.7",
+    "mongodb-memory-server-core": "^11.3.0"
+  },
+  "engines": {
+    "node": ">=20.19.0"
   }
 }

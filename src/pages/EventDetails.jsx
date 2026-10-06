@@ -5,10 +5,10 @@ import { Calendar, MapPin, Users, Share2, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { eventsAPI, bookingsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { useToast } from '../components/ui/Toast';
-import Badge from '../components/ui/Badge';
-import Button from '../components/ui/Button';
-import BookingModal from '../components/events/BookingModal';
+import { useToast } from '../Components/ui/Toast';
+import Badge from '../Components/ui/Badge';
+import Button from '../Components/ui/Button';
+import BookingModal from '../Components/Events/BookingModal';
 import { formatPrice, getTypeClass, capitalizeFirst } from '../utils/helpers';
 import './EventDetails.css';
 

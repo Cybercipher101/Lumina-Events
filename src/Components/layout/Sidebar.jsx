@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { Calendar, Home, Search, Ticket, PlusCircle, LogOut, LogIn, UserPlus } from 'lucide-react';
+import { Calendar, Home, Ticket, PlusCircle, LogOut, LogIn, UserPlus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import './Sidebar.css';
 
