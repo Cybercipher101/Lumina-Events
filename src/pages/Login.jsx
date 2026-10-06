@@ -3,9 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, Lock, LogIn, Calendar } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useToast } from '../components/ui/Toast';
-import Input from '../components/ui/Input';
-import Button from '../components/ui/Button';
+import { useToast } from '../Components/ui/Toast';
+import Input from '../Components/ui/Input';
+import Button from '../Components/ui/Button';
 import './Auth.css';
 
 export default function Login() {
@@ -54,7 +54,7 @@ export default function Login() {
             <Calendar size={28} />
           </div>
           <h1>Welcome Back</h1>
-          <p>Sign in to your EventHub account</p>
+          <p>Sign in to your Lumina account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">

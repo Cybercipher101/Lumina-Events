@@ -4,12 +4,19 @@ const path = require('path');
 const User = require('../models/User');
 const Event = require('../models/Event');
 const Booking = require('../models/Booking');
+const readConfig = require('../config/env');
+const connectDB = require('../config/db');
+const { createBooking } = require('../services/bookings');
 
-dotenv.config({ path: path.join(__dirname, '..', '..', '.env') });
+dotenv.config({ path: path.join(__dirname, '..', '..', '.env'), quiet: true });
 
 const seedData = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    const config = readConfig();
+    if (config.mode === 'production' || !process.argv.includes('--reset')) {
+      throw new Error('Demo seeding deletes data. Use npm run seed -- --reset only with a disposable development database.');
+    }
+    await connectDB();
     console.log('✅ Connected to MongoDB');
 
     // Clear existing data
@@ -38,7 +45,7 @@ const seedData = async () => {
     console.log('   Attendee:  attendee@eventhub.com / password123');
 
     // Create events
-    const events = await Event.create([
+    const seedEvents = [
       {
         title: 'TechVista 2025 — India\'s Premier AI Summit',
         description: 'Join 2000+ tech leaders, AI researchers, and startup founders at India\'s largest artificial intelligence conference. Featuring keynotes from Google DeepMind, OpenAI, and top Indian AI startups. Workshops on LLMs, computer vision, and responsible AI. Networking dinner included.',
@@ -52,7 +59,7 @@ const seedData = async () => {
         ticket_price: 4999,
         currency: 'INR',
         total_capacity: 2000,
-        tickets_sold: 1847,
+        tickets_sold: 0,
         status: 'published',
         image_url: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800',
         tags: ['AI', 'technology', 'startup', 'machine-learning'],
@@ -72,7 +79,7 @@ const seedData = async () => {
         ticket_price: 2499,
         currency: 'INR',
         total_capacity: 5000,
-        tickets_sold: 4200,
+        tickets_sold: 0,
         status: 'published',
         image_url: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800',
         tags: ['music', 'concert', 'AR-Rahman', 'live'],
@@ -92,7 +99,7 @@ const seedData = async () => {
         ticket_price: 1999,
         currency: 'INR',
         total_capacity: 300,
-        tickets_sold: 210,
+        tickets_sold: 0,
         status: 'published',
         image_url: 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=800',
         tags: ['startup', 'networking', 'VC', 'pitch'],
@@ -112,7 +119,7 @@ const seedData = async () => {
         ticket_price: 3499,
         currency: 'INR',
         total_capacity: 50,
-        tickets_sold: 42,
+        tickets_sold: 0,
         status: 'published',
         image_url: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800',
         tags: ['coding', 'workshop', 'web-development', 'MERN'],
@@ -132,7 +139,7 @@ const seedData = async () => {
         ticket_price: 15000,
         currency: 'INR',
         total_capacity: 200,
-        tickets_sold: 145,
+        tickets_sold: 0,
         status: 'published',
         image_url: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800',
         tags: ['gala', 'culture', 'art', 'luxury'],
@@ -152,7 +159,7 @@ const seedData = async () => {
         ticket_price: 799,
         currency: 'INR',
         total_capacity: 3000,
-        tickets_sold: 1800,
+        tickets_sold: 0,
         status: 'published',
         image_url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800',
         tags: ['esports', 'gaming', 'tournament', 'competition'],
@@ -172,7 +179,7 @@ const seedData = async () => {
         ticket_price: 999,
         currency: 'INR',
         total_capacity: 500,
-        tickets_sold: 320,
+        tickets_sold: 0,
         status: 'published',
         image_url: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800',
         tags: ['cloud', 'AWS', 'Azure', 'DevOps'],
@@ -192,27 +199,29 @@ const seedData = async () => {
         ticket_price: 1499,
         currency: 'INR',
         total_capacity: 1500,
-        tickets_sold: 600,
+        tickets_sold: 0,
         status: 'published',
         image_url: 'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=800',
         tags: ['design', 'art', 'exhibition', 'UX'],
         featured: false,
         organizer: organizer._id
       }
-    ]);
+    ];
+    const events = await Event.create(seedEvents.map((event, index) => {
+      const duration = event.end_date - event.start_date;
+      const start = new Date(Date.now() + (14 + index * 7) * 86400000);
+      return { ...event, start_date: start, end_date: new Date(start.getTime() + duration) };
+    }));
 
     console.log(`🎉 Created ${events.length} events`);
 
     // Create a sample booking
-    const booking = await Booking.create({
-      event: events[0]._id,
-      user: attendee._id,
+    const { booking } = await createBooking(attendee.id, {
+      event: events[0].id,
       attendee_name: 'Rahul Patel',
       attendee_email: 'attendee@eventhub.com',
       attendee_phone: '+91 98765 43210',
       number_of_tickets: 2,
-      total_amount: 9998,
-      booking_status: 'confirmed',
       special_requirements: 'Wheelchair accessible seating please'
     });
 
@@ -222,10 +231,11 @@ const seedData = async () => {
     console.log('   Organizer → organizer@eventhub.com / password123');
     console.log('   Attendee  → attendee@eventhub.com / password123');
 
-    process.exit(0);
+    await mongoose.disconnect();
   } catch (error) {
-    console.error('❌ Seeding failed:', error.message);
-    process.exit(1);
+    console.error('Seeding failed:', error.message.startsWith('Demo seeding') ? error.message : 'Check configuration and the development database.');
+    await mongoose.disconnect();
+    process.exitCode = 1;
   }
 };
 

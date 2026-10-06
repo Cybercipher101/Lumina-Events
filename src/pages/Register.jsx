@@ -3,10 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { User, Mail, Lock, UserPlus, Calendar, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useToast } from '../components/ui/Toast';
-import Input from '../components/ui/Input';
-import Select from '../components/ui/Select';
-import Button from '../components/ui/Button';
+import { useToast } from '../Components/ui/Toast';
+import Input from '../Components/ui/Input';
+import Select from '../Components/ui/Select';
+import Button from '../Components/ui/Button';
 import './Auth.css';
 
 export default function Register() {
@@ -26,7 +26,8 @@ export default function Register() {
     if (!formData.email.trim()) errs.email = 'Email is required';
     else if (!/\S+@\S+\.\S+/.test(formData.email)) errs.email = 'Invalid email';
     if (!formData.password) errs.password = 'Password is required';
-    else if (formData.password.length < 6) errs.password = 'Minimum 6 characters';
+    else if (formData.password.length < 8) errs.password = 'Minimum 8 characters';
+    if (new TextEncoder().encode(formData.password).length > 72) errs.password = 'Use a password of at most 72 bytes';
     if (formData.password !== formData.confirmPassword) errs.confirmPassword = 'Passwords do not match';
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -62,7 +63,7 @@ export default function Register() {
             <Calendar size={28} />
           </div>
           <h1>Create Account</h1>
-          <p>Join EventHub and start exploring events</p>
+          <p>Join Lumina and start exploring events</p>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
@@ -98,7 +99,7 @@ export default function Register() {
             type="password"
             value={formData.password}
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            placeholder="Minimum 6 characters"
+            placeholder="Minimum 8 characters"
             error={errors.password}
           />
 

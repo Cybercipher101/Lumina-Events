@@ -1,9 +1,9 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import { ToastProvider } from './components/ui/Toast';
-import Layout from './components/layout/Layout';
-import ProtectedRoute from './components/layout/ProtectedRoute';
+import { ToastProvider } from './Components/ui/Toast';
+import Layout from './Components/layout/Layout';
+import ProtectedRoute from './Components/layout/ProtectedRoute';
 
 // Pages
 import Landing from './pages/Landing';

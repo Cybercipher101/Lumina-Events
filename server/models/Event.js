@@ -49,7 +49,9 @@ const eventSchema = new mongoose.Schema({
   ticket_price: {
     type: Number,
     required: [true, 'Ticket price is required'],
-    min: [0, 'Ticket price cannot be negative']
+    min: [0, 'Ticket price cannot be negative'],
+    max: 10000000,
+    validate: { validator: value => Number.isFinite(value) && Number(value.toFixed(2)) === value, message: 'Ticket price must have at most two decimal places' }
   },
   currency: {
     type: String,
@@ -59,12 +61,15 @@ const eventSchema = new mongoose.Schema({
   total_capacity: {
     type: Number,
     required: [true, 'Total capacity is required'],
-    min: [1, 'Capacity must be at least 1']
+    min: [1, 'Capacity must be at least 1'],
+    max: 10000000,
+    validate: { validator: Number.isSafeInteger, message: 'Capacity must be a whole number' }
   },
   tickets_sold: {
     type: Number,
     default: 0,
-    min: 0
+    min: 0,
+    validate: { validator: Number.isSafeInteger, message: 'Reserved tickets must be a whole number' }
   },
   status: {
     type: String,

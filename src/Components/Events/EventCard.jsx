@@ -11,6 +11,7 @@ import './EventCard.css';
 export default function EventCard({ event, featured = false, index = 0 }) {
   const availableTickets = event.total_capacity - event.tickets_sold;
   const isSoldOut = availableTickets <= 0;
+  const unavailable = event.status !== 'published' || new Date(event.start_date) <= new Date();
 
   return (
     <motion.div
@@ -46,6 +47,7 @@ export default function EventCard({ event, featured = false, index = 0 }) {
               <Badge className={getTypeClass(event.event_type)}>
                 {capitalizeFirst(event.event_type)}
               </Badge>
+              {event.status !== 'published' && <Badge className="status-cancelled">{capitalizeFirst(event.status)}</Badge>}
               {!isSoldOut && availableTickets < 20 && (
                 <Badge className="status-cancelled">
                   Only {availableTickets} left
@@ -81,9 +83,9 @@ export default function EventCard({ event, featured = false, index = 0 }) {
               <Button
                 variant={isSoldOut ? 'ghost' : 'primary'}
                 size="sm"
-                disabled={isSoldOut}
+                disabled={isSoldOut || unavailable}
               >
-                {isSoldOut ? 'Sold Out' : 'Book Now'}
+                {unavailable ? 'View Event' : isSoldOut ? 'Sold Out' : 'Book Now'}
               </Button>
             </div>
           </div>

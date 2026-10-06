@@ -7,7 +7,7 @@ const protect = async (req, res, next) => {
   let token;
 
   // Check for token in Authorization header
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+  if (req.headers.authorization && /^Bearer \S+$/i.test(req.headers.authorization)) {
     token = req.headers.authorization.split(' ')[1];
   }
 
@@ -17,7 +17,7 @@ const protect = async (req, res, next) => {
 
   try {
     // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
 
     // Attach user to request
     req.user = await User.findById(decoded.id).select('-password');
@@ -34,8 +34,9 @@ const protect = async (req, res, next) => {
     if (error.name === 'TokenExpiredError') {
       return next(new AppError('Not authorized — token expired', 401));
     }
-    return next(new AppError('Not authorized', 401));
+    return next(error);
   }
 };
 
 module.exports = protect;
+module.exports.optional = (req, res, next) => req.headers.authorization ? protect(req, res, next) : next();

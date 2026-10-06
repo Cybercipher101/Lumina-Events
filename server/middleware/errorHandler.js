@@ -1,48 +1,34 @@
 const errorHandler = (err, req, res, next) => {
-  let error = { ...err };
-  error.message = err.message;
+  if (res.headersSent) return next(err);
+  let status = err.isOperational ? err.statusCode : 500;
+  let message = err.isOperational ? err.message : 'An unexpected error occurred. Please try again.';
 
-  // Log for development
-  if (process.env.NODE_ENV === 'development') {
-    console.error('❌ Error:', err.message);
-    if (err.stack) console.error(err.stack);
+  if (err.status === 404) {
+    status = 404;
+    message = 'Resource not found';
+  } else if (err.name === 'CastError') {
+    status = 400;
+    message = 'Invalid resource ID or field value';
+  } else if (err.code === 11000) {
+    status = 409;
+    message = err.keyPattern?.email ? 'An account with this email already exists' : 'This record already exists';
+  } else if (err.name === 'ValidationError') {
+    status = 400;
+    message = Object.values(err.errors).map(e => e.message).join('. ');
+  } else if (err.type === 'entity.parse.failed') {
+    status = 400;
+    message = 'Request body must contain valid JSON';
+  } else if (err.type === 'entity.too.large') {
+    status = 413;
+    message = 'Request body is too large';
+  } else if (['MongooseServerSelectionError', 'MongoServerSelectionError', 'MongoNetworkError'].includes(err.name)) {
+    status = 503;
+    message = 'The service is temporarily unavailable. Please try again.';
   }
 
-  // Mongoose bad ObjectId (CastError)
-  if (err.name === 'CastError') {
-    error.message = 'Resource not found';
-    error.statusCode = 400;
-  }
-
-  // Mongoose duplicate key error
-  if (err.code === 11000) {
-    const field = Object.keys(err.keyValue)[0];
-    error.message = `An account with this ${field} already exists`;
-    error.statusCode = 400;
-  }
-
-  // Mongoose validation error
-  if (err.name === 'ValidationError') {
-    const messages = Object.values(err.errors).map(e => e.message);
-    error.message = messages.join('. ');
-    error.statusCode = 400;
-  }
-
-  // JWT errors
-  if (err.name === 'JsonWebTokenError') {
-    error.message = 'Not authorized — invalid token';
-    error.statusCode = 401;
-  }
-
-  if (err.name === 'TokenExpiredError') {
-    error.message = 'Not authorized — token has expired';
-    error.statusCode = 401;
-  }
-
-  res.status(error.statusCode || err.statusCode || 500).json({
-    success: false,
-    error: error.message || 'Server Error'
-  });
+  // Log server failures without including request bodies, tokens or connection strings.
+  if (status >= 500) console.error('Request failed', { requestId: req.id, name: err.name, code: err.code });
+  res.status(status).json({ success: false, error: message, requestId: req.id });
 };
 
 module.exports = errorHandler;

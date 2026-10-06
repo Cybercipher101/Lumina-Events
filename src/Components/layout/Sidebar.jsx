@@ -1,11 +1,11 @@
 import React from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { Calendar, Home, Search, Ticket, PlusCircle, LogOut, LogIn, UserPlus } from 'lucide-react';
+import { Calendar, Home, Ticket, PlusCircle, LogOut, LogIn, UserPlus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import './Sidebar.css';
 
 export default function Sidebar() {
-  const { user, isAuthenticated, isOrganizer, logout } = useAuth();
+  const { user, isAuthenticated, isOrganizer, logout, authError } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -20,7 +20,7 @@ export default function Sidebar() {
           <div className="logo-icon">
             <Calendar size={24} />
           </div>
-          <span className="brand-text text-gradient">EventHub</span>
+          <span className="brand-text text-gradient">Lumina</span>
         </Link>
       </div>
 
@@ -73,6 +73,7 @@ export default function Sidebar() {
       </nav>
 
       <div className="sidebar-footer">
+        {authError && <p role="alert" className="text-danger">{authError}</p>}
         {isAuthenticated ? (
           <div className="user-profile">
             <div className="user-avatar">

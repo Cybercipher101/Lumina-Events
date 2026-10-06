@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Calendar, MapPin, Users, Share2, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { eventsAPI, bookingsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { useToast } from '../components/ui/Toast';
-import Badge from '../components/ui/Badge';
-import Button from '../components/ui/Button';
-import BookingModal from '../components/events/BookingModal';
+import { useToast } from '../Components/ui/Toast';
+import Badge from '../Components/ui/Badge';
+import Button from '../Components/ui/Button';
+import BookingModal from '../Components/Events/BookingModal';
 import { formatPrice, getTypeClass, capitalizeFirst } from '../utils/helpers';
 import './EventDetails.css';
 
@@ -22,6 +22,7 @@ export default function EventDetails() {
   const [loading, setLoading] = useState(true);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [bookingProcessing, setBookingProcessing] = useState(false);
+  const bookingPending = useRef(false);
 
   useEffect(() => {
     fetchEvent();
@@ -49,18 +50,21 @@ export default function EventDetails() {
     setShowBookingModal(true);
   };
 
-  const handleConfirmBooking = async (bookingData) => {
+  const handleConfirmBooking = async (bookingData, requestKey) => {
+    if (bookingPending.current) return;
+    bookingPending.current = true;
     setBookingProcessing(true);
     try {
-      await bookingsAPI.create(bookingData);
-      toast.success('Booking confirmed successfully!');
+      const result = await bookingsAPI.create(bookingData, requestKey);
+      if (result.booking.booking_status === 'cancelled') toast.info('This booking was already cancelled. You can view it in My Tickets.');
+      else toast.success('Booking confirmed successfully!');
       setShowBookingModal(false);
-      fetchEvent(); // Refresh event to get updated ticket count
       navigate('/my-bookings');
     } catch (error) {
       toast.error(error.message || 'Failed to process booking');
     } finally {
       setBookingProcessing(false);
+      bookingPending.current = false;
     }
   };
 
@@ -68,7 +72,7 @@ export default function EventDetails() {
     if (navigator.share) {
       navigator.share({
         title: event.title,
-        text: `Check out ${event.title} on EventHub!`,
+        text: `Check out ${event.title} on Lumina!`,
         url: window.location.href,
       }).catch(err => console.log('Error sharing', err));
     } else {
@@ -89,6 +93,7 @@ export default function EventDetails() {
 
   const availableTickets = event.total_capacity - event.tickets_sold;
   const isSoldOut = availableTickets <= 0;
+  const unavailable = event.status !== 'published' || new Date(event.start_date) <= new Date();
 
   return (
     <div className="event-details-page">
@@ -204,10 +209,10 @@ export default function EventDetails() {
               <Button 
                 size="lg" 
                 fullWidth 
-                disabled={isSoldOut}
+                disabled={isSoldOut || unavailable}
                 onClick={handleBookClick}
               >
-                {isSoldOut ? 'Sold Out' : 'Book Tickets Now'}
+                {unavailable ? 'Booking Unavailable' : isSoldOut ? 'Sold Out' : 'Book Tickets Now'}
               </Button>
             </div>
           </motion.div>
@@ -218,7 +223,7 @@ export default function EventDetails() {
         <BookingModal
           event={event}
           user={user}
-          onClose={() => setShowBookingModal(false)}
+          onClose={() => { if (!bookingPending.current) setShowBookingModal(false); }}
           onBook={handleConfirmBooking}
           isProcessing={bookingProcessing}
         />
