@@ -1,168 +1,115 @@
-![Lumina Logo](https://img.icons8.com/color/96/000000/event-accepted-tentatively.png)
+# Lumina Events
 
-# 🌟 Lumina 🌟
-*A modern, full-stack solution for discovering, booking, and managing events seamlessly.*
+A React and Express application for discovering events, publishing events, reserving tickets, and managing bookings. Ticket amounts are reservation totals; this application does not collect payments or issue refunds.
 
-<!-- Badges -->
-![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB) ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white) ![Express.js](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white) ![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white) ![JWT](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=JSON%20web%20tokens&logoColor=white)
+## Requirements
 
----
+- Node.js 24 LTS (see `.nvmrc`).
+- MongoDB Atlas or a MongoDB replica set. A standalone MongoDB server cannot run the booking transactions and is rejected at startup.
+- HTTPS at your production hosting provider or reverse proxy.
 
-## 📖 Problem Statement
+## Local development
 
-Organizing and discovering events is often a fragmented and frustrating experience. 
-- **For Event Attendees**: Discovering relevant events, securely booking tickets, and keeping track of their upcoming schedule is spread across multiple platforms.
-- **For Event Organizers**: Creating events, managing ticket sales, and reaching the right audience requires complex tools and high fees.
-
-**Solution**: **Lumina** bridges the gap by providing a unified, intuitive, and secure environment where organizers can effortlessly publish events, and users can seamlessly discover and book them.
-
----
-
-## 🎯 Minimum Viable Product (MVP)
-
-The initial version of the platform includes the following core functionalities:
-
-1. **User Authentication & Authorization**: Secure login and registration with Role-Based Access Control (RBAC) separating `Users` and `Organizers`.
-2. **Event Discovery**: A landing page to browse all available events with basic details.
-3. **Event Booking**: Users can view event details and book tickets securely.
-4. **Attendee Dashboard**: A personalized space for users to view and manage their bookings.
-5. **Organizer Dashboard**: Dedicated tools for organizers to create new events and monitor the events they host.
-
----
-
-## 🛠 Tech Stack
-
-Built with the modern **MERN** stack to ensure scalability, performance, and a smooth developer experience.
-
-### **Frontend**
-- **React.js (v19)**: Component-based UI development.
-- **React Router (v7)**: Seamless client-side routing.
-- **Framer Motion**: Fluid, beautiful micro-animations and transitions.
-- **Lucide React**: Clean and consistent iconography.
-- **Context API**: Global state management for Authentication and UI Toasts.
-
-### **Backend**
-- **Node.js & Express.js**: Fast and minimalist web framework for the API.
-- **MongoDB & Mongoose**: Flexible NoSQL database and Object Data Modeling (ODM).
-- **JWT (JSON Web Tokens)**: Secure stateless authentication.
-- **Bcrypt.js**: Cryptographic password hashing.
-- **Express Validator**: Robust request data validation.
-
----
-
-## 🔄 Workflow Diagram
-
-```mermaid
-flowchart LR
-    %% Custom Styles
-    classDef primary fill:#4F46E5,stroke:#3730A3,stroke-width:2px,color:#fff
-    classDef secondary fill:#10B981,stroke:#059669,stroke-width:2px,color:#fff
-    classDef database fill:#F59E0B,stroke:#D97706,stroke-width:2px,color:#fff
-    classDef action fill:#F3F4F6,stroke:#9CA3AF,stroke-width:1px,color:#111827,rx:5px,ry:5px
-
-    %% Nodes
-    User["👤 Attendee"]:::primary
-    Org["🏢 Organizer"]:::secondary
-    DB[("🗄️ System Database")]:::database
-
-    subgraph Platform Actions
-        direction TB
-        Discover["🔍 Discover Events"]:::action
-        Book["🎫 Book Tickets"]:::action
-        Create["📝 Publish Events"]:::action
-        Manage["📊 Track & Manage"]:::action
-    end
-
-    %% Attendee Flow
-    User --> Discover
-    Discover --> Book
-    Book -->|"Saves Booking"| DB
-
-    %% Organizer Flow
-    Org --> Create
-    Org --> Manage
-    Create -->|"Stores Event Data"| DB
-    Manage -->|"Reads/Updates"| DB
-
-    %% Database feedback
-    DB -.->|"Populates Catalog"| Discover
+```bash
+npm ci
 ```
 
----
+Copy `.env.example` to `.env` and set `MONGO_URI` and `JWT_SECRET`. Generate a secret with:
 
-## 🚀 Getting Started
-
-Follow these instructions to get a copy of the project up and running on your local machine for development and testing purposes.
-
-### Prerequisites
-- [Node.js](https://nodejs.org/) (v16 or higher)
-- [MongoDB](https://www.mongodb.com/) (Local instance or MongoDB Atlas cluster)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/Cybercipher101/Lumina-Events.git
-   cd Lumina-Events
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-   *(Note: The repository uses a unified package.json utilizing `concurrently` to run both frontend and backend)*
-
-3. **Environment Setup**
-   Create a `.env` file in the root directory and add the following variables:
-   ```env
-   PORT=5000
-   MONGO_URI=your_mongodb_connection_string
-   JWT_SECRET=your_super_secret_jwt_key
-   JWT_EXPIRE=30d
-   ```
-
-4. **Seed the Database (Optional)**
-   To populate the database with sample data:
-   ```bash
-   npm run seed
-   ```
-
-5. **Run the Application**
-   Start both the backend server and the frontend React application concurrently:
-   ```bash
-   npm run dev
-   ```
-   - **Frontend**: [http://localhost:3000](http://localhost:3000)
-   - **Backend API**: [http://localhost:5000](http://localhost:5000)
-
----
-
-## 📂 Project Structure
-
-```text
-Lumina-Events/
-├── public/                 # Static assets
-├── server/                 # Backend Node.js/Express application
-│   ├── config/             # Database connection & configurations
-│   ├── middleware/         # Custom Express middlewares (Auth, Error handling)
-│   ├── models/             # Mongoose schemas (User, Event, Booking)
-│   ├── routes/             # API endpoints definitions
-│   ├── seed/               # Database seeder scripts
-│   └── server.js           # Backend entry point
-├── src/                    # Frontend React application
-│   ├── components/         # Reusable UI components & layouts
-│   ├── context/            # React Context (AuthContext, ToastContext)
-│   ├── pages/              # Route-level components (Landing, Login, Dashboard)
-│   ├── services/           # API interaction layer
-│   ├── utils/              # Helper functions
-│   ├── App.js              # Main React component & Router config
-│   └── index.css           # Global styles
-├── .env                    # Environment variables
-└── package.json            # Project metadata and dependencies
+```bash
+node -e "console.log(require('node:crypto').randomBytes(48).toString('hex'))"
 ```
 
----
+For a disposable local MongoDB instance, start MongoDB with replication enabled and initialize it once:
 
-<div align="center">
-   <p>Built with ❤️ using the MERN Stack</p>
-</div>
+```bash
+mongod --replSet rs0 --bind_ip 127.0.0.1 --dbpath /your/development/database-directory
+mongosh --eval 'rs.initiate()'
+```
+
+Create the database directory first. Atlas requires no local MongoDB installation.
+
+```bash
+npm run dev
+```
+
+The frontend runs at `http://localhost:3000`; Vite proxies `/api` to the backend port in `.env` (default 5000). Node's built-in watcher restarts the backend. These commands work on Windows, Linux and macOS.
+
+Optional demo data **deletes all users, events and bookings in the configured development database**:
+
+```bash
+npm run seed -- --reset
+```
+
+Seeding refuses production mode and requires the explicit reset flag. Demo events start in the future and their reserved counts match real demo bookings.
+
+## Production deployment
+
+This is a single-service deployment: Express serves the frontend from `dist` and the API from `/api`. Deep links such as `/events/:id` serve the app; unknown API paths and missing assets return JSON errors.
+
+Set these environment variables through your hosting provider's secret/configuration controls:
+
+| Variable | Production value |
+| --- | --- |
+| `NODE_ENV` | `production` |
+| `MONGO_URI` | Atlas or replica-set connection string, including the database name |
+| `JWT_SECRET` | Unique generated secret, at least 32 bytes |
+| `JWT_EXPIRE` | Token lifetime, default `7d` |
+| `PORT` | Provider-assigned listening port, default `5000` |
+| `HOST` | Default `0.0.0.0` |
+| `CORS_ORIGINS` | Empty for this same-origin deployment; otherwise comma-separated exact HTTPS frontend origins |
+| `TRUST_PROXY` | Exact number of trusted proxy hops; default `0`. Use `1` only when all traffic passes through one trusted proxy. |
+
+For a typical managed Node host:
+
+- Build command: `npm ci && npm run build`
+- Start command: `npm start`
+- Readiness path: `/api/health/ready`
+- Liveness path: `/api/health`
+
+Install build dependencies during the build stage. A final runtime installation can use `npm ci --omit=dev`. The application waits for the database and additive indexes before listening, refuses missing frontend builds in production, and drains requests on SIGTERM/SIGINT.
+
+A Dockerfile is included:
+
+```bash
+docker build -t lumina-events .
+docker run --rm -p 5000:5000 --env-file /your/private/production.env lumina-events
+```
+
+The image builds the frontend in a separate stage, installs only production dependencies in its runtime stage, runs as a non-root user, and includes a readiness health check. Configuration files and local secrets are excluded from the image.
+
+### Before upgrading an existing database
+
+Back up the database and run:
+
+```bash
+npm run check:data
+```
+
+This read-only check compares `tickets_sold` with confirmed/pending booking ticket counts and reports missing events or invalid capacity. It exits nonzero when data is inconsistent. Older versions and the old demo seeder may have left inconsistent counters or orphan bookings; reconcile them against actual booking history before accepting production reservations. The command does not automatically change records. Startup adds the user, event and unique booking-request indexes without removing existing indexes.
+
+The included rate limiters use per-process memory. The supplied deployment supports one application instance. Before running multiple instances, configure a shared rate-limit store and verify the proxy trust configuration; booking correctness itself uses MongoDB transactions and does not depend on process memory.
+
+## Booking consistency and retry behavior
+
+- Reservation and booking creation share one transaction with snapshot reads and majority writes. Failed inserts or population reads abort both writes; transient conflicts are retried by the database driver.
+- Send `Idempotency-Key: <UUID v4>` when creating a booking. The frontend creates one key per booking modal and preserves it across retries. Keys are scoped to the user. A repeated identical request returns the original booking with HTTP 200; different details with the same key return HTTP 409. New bookings return HTTP 201. API clients should preserve the key if a response is interrupted. The key remains associated with the booking after cancellation.
+- Cancellation is idempotent: repeated requests return HTTP 200, and status and ticket release commit together. Inconsistent legacy inventory returns HTTP 409 without making counters negative.
+- Deletion writes the event inside its transaction before checking booking history. A concurrent reservation writes the same event, forcing a conflict/retry. Any confirmed, pending, or cancelled booking blocks deletion. Cancel the event instead; attendees can still view and cancel their bookings.
+- Organizers cannot supply inventory or another organizer's ID. Capacity updates also transact against the event and cannot reduce capacity below current reservations.
+- Draft, cancelled, completed and already-started events cannot accept reservations. Draft detail pages are visible only to the owner.
+- Event snapshots preserve booking history if a legacy event is missing. Missing-event bookings remain readable; cancellation reports the inconsistency for an organizer to investigate.
+
+## Validation
+
+```bash
+npm test
+npm run build
+npm audit
+```
+
+`npm run test:server` runs HTTP integration tests against a disposable MongoDB 8 replica set and runtime tests. It never uses `MONGO_URI` from your environment for integration-test data. The first test run downloads a MongoDB binary; network access and permission to start native processes are required. CI caches that binary.
+
+Tests cover simultaneous last-seat bookings, creation/read failures, idempotent booking requests, cancellation retries and failures, authorization, negative inventory, booking/deletion races, capacity changes, event validation, private drafts, API errors, rate limits, and production frontend serving. Frontend tests cover booking retry keys, disabled submission, missing history records, header merging, response parsing, session expiry and request timeouts.
+
+GitHub Actions runs the tests, build, production dependency audit and Docker build on PRs and pushes. Require the `test-and-build` and `container-build` jobs before merging. Server errors omit internal exception messages; request IDs help correlate failures. Health checks contain no credentials or user information.

@@ -51,12 +51,14 @@ export default function CreateEvent() {
     const errs = {};
     if (!formData.title.trim()) errs.title = 'Title is required';
     if (!formData.start_date) errs.start_date = 'Start date is required';
+    else if (new Date(formData.start_date) <= new Date()) errs.start_date = 'Choose a future date';
+    if (formData.end_date && new Date(formData.end_date) <= new Date(formData.start_date)) errs.end_date = 'End date must be after the start date';
     if (!formData.venue_name.trim()) errs.venue_name = 'Venue name is required';
     if (!formData.venue_city.trim()) errs.venue_city = 'City is required';
     if (!formData.ticket_price) errs.ticket_price = 'Price is required';
     else if (Number(formData.ticket_price) < 0) errs.ticket_price = 'Cannot be negative';
     if (!formData.total_capacity) errs.total_capacity = 'Capacity is required';
-    else if (Number(formData.total_capacity) < 1) errs.total_capacity = 'Must be at least 1';
+    else if (!Number.isSafeInteger(Number(formData.total_capacity)) || Number(formData.total_capacity) < 1) errs.total_capacity = 'Enter a positive whole number';
     
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -73,6 +75,8 @@ export default function CreateEvent() {
     try {
       const dataToSubmit = {
         ...formData,
+        start_date: new Date(formData.start_date).toISOString(),
+        end_date: formData.end_date ? new Date(formData.end_date).toISOString() : null,
         status: 'published',
         ticket_price: Number(formData.ticket_price),
         total_capacity: Number(formData.total_capacity)
@@ -153,6 +157,7 @@ export default function CreateEvent() {
                 icon={<Calendar size={15} />}
                 value={formData.end_date}
                 onChange={(e) => update('end_date', e.target.value)}
+                error={errors.end_date}
               />
             </div>
 
@@ -190,6 +195,7 @@ export default function CreateEvent() {
                 label="Ticket Price (₹) *"
                 type="number"
                 min="0"
+                step="0.01"
                 icon={<DollarSign size={15} />}
                 value={formData.ticket_price}
                 onChange={(e) => update('ticket_price', e.target.value)}
@@ -201,6 +207,7 @@ export default function CreateEvent() {
                 label="Total Capacity *"
                 type="number"
                 min="1"
+                step="1"
                 icon={<Users size={15} />}
                 value={formData.total_capacity}
                 onChange={(e) => update('total_capacity', e.target.value)}

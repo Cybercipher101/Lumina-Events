@@ -15,6 +15,7 @@ export default function MyBookings() {
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState(null);
   const toast = useToast();
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     fetchBookings();
@@ -25,8 +26,9 @@ export default function MyBookings() {
     try {
       const data = await bookingsAPI.getMy();
       setBookings(data.bookings);
+      setLoadError('');
     } catch (error) {
-      toast.error('Failed to load your bookings');
+      setLoadError('Unable to load your tickets. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -65,7 +67,12 @@ export default function MyBookings() {
           <span className="events-count">{bookings.length} Bookings</span>
         </div>
 
-        {bookings.length === 0 ? (
+        {loadError ? (
+          <div role="alert" className="empty-state glass">
+            <p>{loadError}</p>
+            <Button onClick={fetchBookings}>Try Again</Button>
+          </div>
+        ) : bookings.length === 0 ? (
           <div className="empty-state glass">
             <div className="empty-state-icon">
               <Ticket size={48} />
@@ -78,7 +85,11 @@ export default function MyBookings() {
           </div>
         ) : (
           <div className="bookings-list">
-            {bookings.map((booking, index) => (
+            {bookings.map((booking, index) => {
+              const event = booking.event || booking.event_snapshot || {};
+              const date = event.start_date ? new Date(event.start_date) : null;
+              const hasDate = date && !Number.isNaN(date.getTime());
+              return (
               <motion.div 
                 key={booking._id}
                 className={`booking-card-horizontal glass ${booking.booking_status === 'cancelled' ? 'booking-cancelled' : ''}`}
@@ -87,13 +98,13 @@ export default function MyBookings() {
                 transition={{ duration: 0.3, delay: index * 0.1 }}
               >
                 <div className="booking-date-block">
-                  <span className="booking-month">{format(new Date(booking.event.start_date), 'MMM')}</span>
-                  <span className="booking-day">{format(new Date(booking.event.start_date), 'dd')}</span>
+                  <span className="booking-month">{hasDate ? format(date, 'MMM') : '—'}</span>
+                  <span className="booking-day">{hasDate ? format(date, 'dd') : '—'}</span>
                 </div>
                 
                 <div className="booking-details">
                   <div className="booking-header">
-                    <h3>{booking.event.title}</h3>
+                    <h3>{event.title || 'Event details unavailable'}</h3>
                     <Badge className={
                       booking.booking_status === 'confirmed' ? 'status-confirmed' : 
                       booking.booking_status === 'cancelled' ? 'status-cancelled' : 'status-pending'
@@ -103,11 +114,13 @@ export default function MyBookings() {
                   </div>
                   
                   <div className="booking-meta">
-                    <span><Calendar size={14} /> {format(new Date(booking.event.start_date), 'h:mm a')}</span>
-                    <span><MapPin size={14} /> {booking.event.venue_name}, {booking.event.venue_city}</span>
+                    <span><Calendar size={14} /> {hasDate ? format(date, 'h:mm a') : 'Date unavailable'}</span>
+                    <span><MapPin size={14} /> {event.venue_name || 'Venue unavailable'}{event.venue_city ? `, ${event.venue_city}` : ''}</span>
                     <span><Ticket size={14} /> {booking.number_of_tickets} Ticket(s)</span>
                   </div>
                   
+                  {event.status === 'cancelled' && <p className="text-danger">The organizer has cancelled this event.</p>}
+                  {!booking.event && <p>Event details are unavailable. Contact the organizer if you need help.</p>}
                   <div className="booking-ref">
                     Reference: <strong>{booking.booking_reference}</strong>
                   </div>
@@ -115,9 +128,9 @@ export default function MyBookings() {
 
                 <div className="booking-actions">
                   <div className="booking-price">
-                    {formatPrice(booking.total_amount, booking.event.currency)}
+                    {formatPrice(booking.total_amount, booking.event_snapshot?.currency || event.currency || 'INR')}
                   </div>
-                  {booking.booking_status === 'confirmed' && (
+                  {booking.booking_status === 'confirmed' && booking.event && (
                     <Button 
                       variant="danger" 
                       size="sm" 
@@ -129,7 +142,8 @@ export default function MyBookings() {
                   )}
                 </div>
               </motion.div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

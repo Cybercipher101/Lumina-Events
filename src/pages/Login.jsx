@@ -54,7 +54,7 @@ export default function Login() {
             <Calendar size={28} />
           </div>
           <h1>Welcome Back</h1>
-          <p>Sign in to your EventHub account</p>
+          <p>Sign in to your Lumina account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">

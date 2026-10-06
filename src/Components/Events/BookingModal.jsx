@@ -9,6 +9,8 @@ import './BookingModal.css';
 
 export default function BookingModal({ event, user, onClose, onBook, isProcessing }) {
   const availableTickets = event.total_capacity - event.tickets_sold;
+  // Keep this key for retries after an interrupted response.
+  const [requestKey] = useState(() => crypto.randomUUID());
 
   const [formData, setFormData] = useState({
     attendee_name: user?.name || '',
@@ -25,20 +27,22 @@ export default function BookingModal({ event, user, onClose, onBook, isProcessin
     if (!formData.attendee_name.trim()) errs.attendee_name = 'Name is required';
     if (!formData.attendee_email.trim()) errs.attendee_email = 'Email is required';
     else if (!/\S+@\S+\.\S+/.test(formData.attendee_email)) errs.attendee_email = 'Invalid email';
-    if (formData.number_of_tickets < 1) errs.number_of_tickets = 'At least 1 ticket required';
+    if (!Number.isSafeInteger(Number(formData.number_of_tickets)) || formData.number_of_tickets < 1) errs.number_of_tickets = 'Enter a positive whole number of tickets';
     if (formData.number_of_tickets > availableTickets) errs.number_of_tickets = `Only ${availableTickets} available`;
+    if (formData.special_requirements.length > 500) errs.special_requirements = 'Please use at most 500 characters';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (isProcessing) return;
     if (!validate()) return;
     onBook({
       event: event._id,
       ...formData,
       number_of_tickets: Number(formData.number_of_tickets),
-    });
+    }, requestKey);
   };
 
   const update = (field, value) => {
@@ -57,6 +61,7 @@ export default function BookingModal({ event, user, onClose, onBook, isProcessin
       <p className="booking-modal-event-title">{event.title}</p>
 
       <form onSubmit={handleSubmit}>
+        <fieldset disabled={isProcessing} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
         <Input
           id="attendee_name"
           label="Full Name *"
@@ -94,6 +99,7 @@ export default function BookingModal({ event, user, onClose, onBook, isProcessin
           icon={<Ticket size={15} />}
           type="number"
           min="1"
+          step="1"
           max={availableTickets}
           value={formData.number_of_tickets}
           onChange={(e) => update('number_of_tickets', e.target.value)}
@@ -106,6 +112,8 @@ export default function BookingModal({ event, user, onClose, onBook, isProcessin
           label="Special Requirements"
           icon={<MessageSquare size={15} />}
           rows={3}
+          maxLength={500}
+          error={errors.special_requirements}
           value={formData.special_requirements}
           onChange={(e) => update('special_requirements', e.target.value)}
           placeholder="Dietary restrictions, accessibility needs, etc."
@@ -130,6 +138,7 @@ export default function BookingModal({ event, user, onClose, onBook, isProcessin
             {isProcessing ? 'Processing...' : 'Confirm Booking'}
           </Button>
         </div>
+        </fieldset>
       </form>
     </Modal>
   );

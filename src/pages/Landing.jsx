@@ -9,6 +9,11 @@ import './Landing.css';
 export default function Landing() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [loadError, setLoadError] = useState('');
+  const [retry, setRetry] = useState(0);
   const [filters, setFilters] = useState({
     search: '',
     type: 'all',
@@ -17,24 +22,26 @@ export default function Landing() {
   const [appliedFilters, setAppliedFilters] = useState({ ...filters });
 
   useEffect(() => {
-    fetchEvents();
-    // eslint-disable-next-line
-  }, [appliedFilters]);
-
-  const fetchEvents = async () => {
+    const controller = new AbortController();
     setLoading(true);
-    try {
-      const data = await eventsAPI.getAll(appliedFilters);
-      setEvents(data.events || []);
-    } catch (error) {
-      console.error('Failed to fetch events', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    setLoadError('');
+    eventsAPI.getAll({ ...appliedFilters, page }, { signal: controller.signal }).then(data => {
+      if (controller.signal.aborted) return;
+      setEvents(previous => page === 1 ? data.events : [...previous, ...data.events]);
+      setPages(data.pages);
+      setTotal(data.total);
+    }).catch(() => {
+      if (!controller.signal.aborted) setLoadError('Unable to load events. Please try again.');
+    }).finally(() => {
+      if (!controller.signal.aborted) setLoading(false);
+    });
+    return () => controller.abort();
+  }, [appliedFilters, page, retry]);
 
   const handleSearch = (e) => {
     e.preventDefault();
+    setPage(1);
+    setEvents([]);
     setAppliedFilters({ ...filters });
   };
 
@@ -71,7 +78,9 @@ export default function Landing() {
               <Search size={20} className="search-icon" />
               <input
                 type="text"
-                placeholder="Search events, organizers, or topics..."
+                placeholder="Search events or topics..."
+                aria-label="Search events"
+                maxLength={120}
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
                 className="search-input"
@@ -81,7 +90,7 @@ export default function Landing() {
             <div className="search-filters">
               <div className="search-filter">
                 <MapPin size={16} />
-                <select 
+                <select aria-label="City"
                   value={filters.city}
                   onChange={(e) => setFilters({ ...filters, city: e.target.value })}
                 >
@@ -95,7 +104,7 @@ export default function Landing() {
               
               <div className="search-filter">
                 <Filter size={16} />
-                <select 
+                <select aria-label="Event type"
                   value={filters.type}
                   onChange={(e) => setFilters({ ...filters, type: e.target.value })}
                 >
@@ -124,10 +133,15 @@ export default function Landing() {
               ? 'Search Results' 
               : 'Trending Events'}
           </h2>
-          {events.length > 0 && <span className="events-count">{events.length} events found</span>}
+          {events.length > 0 && <span className="events-count">{total} events found</span>}
         </div>
 
-        {loading ? (
+        {loadError ? (
+          <div role="alert" className="empty-state glass">
+            <p>{loadError}</p>
+            <Button onClick={() => setRetry(value => value + 1)}>Try Again</Button>
+          </div>
+        ) : loading && events.length === 0 ? (
           <div className="page-loader">
             <div className="spinner spinner-dark"></div>
           </div>
@@ -139,6 +153,8 @@ export default function Landing() {
             <h3>No events found</h3>
             <p>Try adjusting your filters or search terms.</p>
             <Button variant="outline" onClick={() => {
+              setPage(1);
+              setEvents([]);
               setFilters({ search: '', type: 'all', city: 'all' });
               setAppliedFilters({ search: '', type: 'all', city: 'all' });
             }}>
@@ -155,6 +171,11 @@ export default function Landing() {
                 index={index}
               />
             ))}
+          </div>
+        )}
+        {!loadError && page < pages && (
+          <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+            <Button onClick={() => setPage(value => value + 1)} loading={loading}>Load More Events</Button>
           </div>
         )}
       </section>
